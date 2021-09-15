@@ -1,0 +1,45 @@
+{
+  "name": "any-size-file-loader",
+  "version": "1.0.0",
+  "description": "Manage huge files upload by spliting in to chunks",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "lint": "tslint -p tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc --build",
+    "prepare": "npm run build",
+    "prePublishOnly": "npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run fromat && git add -A src",
+    "postversion": "git push && git push --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jahman177/any-size-file-loader.git"
+  },
+  "keywords": [
+    "file load",
+    "load",
+    "chunked",
+    "chunked upload",
+    "file upload",
+    "huge file upload",
+    "big file upload",
+    "node"
+  ],
+  "author": "jahman17",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jahman177/any-size-file-loader/issues"
+  },
+  "homepage": "https://github.com/jahman177/any-size-file-loader#readme",
+  "devDependencies": {
+    "@types/node": "^16.9.1",
+    "prettier": "^2.4.0",
+    "tslint": "^6.1.3",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^4.4.3"
+  }
+}
