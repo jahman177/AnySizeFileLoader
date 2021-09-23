@@ -36,18 +36,21 @@ export default class AnySizeFileLoader {
     this.deleteChunksAfterAssemble = params.deleteChunksAfterAssemble;
     this.ignoreChunkTotal = params.ignoreChunkTotal;
     if (params.upLoadStreamInfoStorage === 'custom') {
-      if (!(typeof params.storage === 'object' && 'getFileUpLoadStreamInfo' in params.storage)) throw new Error('getFileUpLoadStreamInfo was not provided');
+      if (!(typeof params.storage === 'object' && 'getFileUpLoadStreamInfo' in params.storage))
+        throw new Error('getFileUpLoadStreamInfo was not provided');
       this.getFileUpLoadStreamInfo = params.storage.getFileUpLoadStreamInfo;
-      if (!(typeof params.storage === 'object' && 'setFileUpLoadStreamInfo' in params.storage)) throw new Error('setFileUpLoadStreamInfo was not provided');
+      if (!(typeof params.storage === 'object' && 'setFileUpLoadStreamInfo' in params.storage))
+        throw new Error('setFileUpLoadStreamInfo was not provided');
       this._setFileUpLoadStreamInfo = params.storage.setFileUpLoadStreamInfo;
-      if (!(typeof params.storage === 'object' && 'deleteFileUpLoadStreamInfo' in params.storage)) throw new Error('deleteFileUpLoadStreamInfo was not provided');
+      if (!(typeof params.storage === 'object' && 'deleteFileUpLoadStreamInfo' in params.storage))
+        throw new Error('deleteFileUpLoadStreamInfo was not provided');
       this._deleteFileUpLoadStreamInfo = params.storage.deleteFileUpLoadStreamInfo;
     } else {
       this.getFileUpLoadStreamInfo = async (fileId: string) => {
         return FilerStreamsInfosPool.getItem(fileId);
       };
       this._setFileUpLoadStreamInfo = async (fileId: string, value: IFileUpLoadStreamInfo) => {
-        if (!FilerStreamsInfosPool.checkKey(fileId)) FilerStreamsInfosPool.setItme(fileId,value);
+        if (!FilerStreamsInfosPool.checkKey(fileId)) FilerStreamsInfosPool.setItme(fileId, value);
         return true;
       };
       this._deleteFileUpLoadStreamInfo = async (fileId: string) => {
@@ -59,12 +62,12 @@ export default class AnySizeFileLoader {
 
   private _checkDir(dirPath: string): Promise<any> {
     return new Promise((resolve: (value?: unknown) => void, reject: (error: any) => void) => {
-      if(!fs.existsSync(dirPath)){
+      if (!fs.existsSync(dirPath)) {
         fs.mkdir(dirPath, { recursive: true }, (mkdirError: any) => {
-            if (mkdirError) reject(mkdirError);
-            else resolve();
-          });
-    } else resolve();
+          if (mkdirError) reject(mkdirError);
+          else resolve();
+        });
+      } else resolve();
     });
   }
 
@@ -92,10 +95,10 @@ export default class AnySizeFileLoader {
               this.assembleChunks(value.fileId, value.fileName).catch((error) => {
                 throw new Error(error.message);
               });
-            // todo resolve after _deleteFileUpLoadStreamInfo 
+            // todo resolve after _deleteFileUpLoadStreamInfo
             this._deleteFileUpLoadStreamInfo(fileUpLoadStreamInfo.fileId);
           } else {
-            // todo resolve after _setFileUpLoadStreamInfo 
+            // todo resolve after _setFileUpLoadStreamInfo
             this._setFileUpLoadStreamInfo(fileUpLoadStreamInfo.fileId, value);
           }
           resolve(value);
@@ -115,7 +118,7 @@ export default class AnySizeFileLoader {
     });
     if (chunkSize > this.maxChunkSize) throw new Error('Chunk exited maxChunkSize restriction');
     // todo: rework ignoreChunkTotal rule/option
-    if (chunkNumber < 0 || chunkNumber >= (this.ignoreChunkTotal ? 1 :fileUpLoadStreamInfo.chunkTotal))
+    if (chunkNumber < 0 || chunkNumber >= (this.ignoreChunkTotal ? 1 : fileUpLoadStreamInfo.chunkTotal))
       throw new Error('chunkNumber out of chunckTotal range');
     if (chunkFileId !== fileUpLoadStreamInfo.fileId)
       throw new Error(`Chunk doesn't belong to this temp file: ${fileUpLoadStreamInfo.fileId}`);

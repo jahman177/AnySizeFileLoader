@@ -14,7 +14,7 @@ export default class Pool {
   deleteItem(key: string) {
     delete this.pool[key];
   }
-  checkKey(key: string){
+  checkKey(key: string) {
     return this.pool.hasOwnProperty(key);
   }
 }
