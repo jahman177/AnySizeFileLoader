@@ -20,12 +20,13 @@ export default class AnySizeFileLoader {
   endDirPath: string;
   assembleChunksAfterLast: boolean | undefined;
   deleteChunksAfterAssemble: boolean | undefined;
+  ignoreChunkTotal: boolean | undefined;
 
   getFileUpLoadStreamInfo: (fileId: string) => Promise<IFileUpLoadStreamInfo>;
   private _setFileUpLoadStreamInfo: (fileId: string, value: IFileUpLoadStreamInfo) => Promise<boolean>;
   private _deleteFileUpLoadStreamInfo: (fileId: string) => Promise<boolean>;
 
-  // todo add option when loading stops: delete chunks or left them;
+  // todo add option when loading stops
 
   constructor(params: IAnySizeFileLoaderConstructor) {
     this.maxChunkSize = params.maxChunkSize;
@@ -33,6 +34,7 @@ export default class AnySizeFileLoader {
     this.endDirPath = params.endDirPath;
     this.assembleChunksAfterLast = params.assembleChunksAfterLast;
     this.deleteChunksAfterAssemble = params.deleteChunksAfterAssemble;
+    this.ignoreChunkTotal = params.ignoreChunkTotal;
     if (params.upLoadStreamInfoStorage === 'custom') {
       if (!(typeof params.storage === 'object' && 'getFileUpLoadStreamInfo' in params.storage)) throw new Error('getFileUpLoadStreamInfo was not provided');
       this.getFileUpLoadStreamInfo = params.storage.getFileUpLoadStreamInfo;
@@ -57,14 +59,12 @@ export default class AnySizeFileLoader {
 
   private _checkDir(dirPath: string): Promise<any> {
     return new Promise((resolve: (value?: unknown) => void, reject: (error: any) => void) => {
-      fs.stat(dirPath, (statError) => {
-        if (statError)
-          fs.mkdir(dirPath, { recursive: true }, (mkdirError: any) => {
+      if(!fs.existsSync(dirPath)){
+        fs.mkdir(dirPath, { recursive: true }, (mkdirError: any) => {
             if (mkdirError) reject(mkdirError);
             else resolve();
           });
-        else resolve();
-      });
+    } else resolve();
     });
   }
 
@@ -85,13 +85,17 @@ export default class AnySizeFileLoader {
       writeStream.end(() => {
         this.getFileUpLoadStreamInfo(fileUpLoadStreamInfo.fileId).then((value) => {
           value.lastSavedChunk = chunkNumber;
-          if (chunkNumber === fileUpLoadStreamInfo.chunkTotal - 1) {
+          // todo: rework ignoreChunkTotal rule/option
+          if (chunkNumber === (this.ignoreChunkTotal ? -1 : fileUpLoadStreamInfo.chunkTotal - 1)) {
             if (this.assembleChunksAfterLast)
+              // todo resolve after assembleChunks
               this.assembleChunks(value.fileId, value.fileName).catch((error) => {
                 throw new Error(error.message);
               });
+            // todo resolve after _deleteFileUpLoadStreamInfo 
             this._deleteFileUpLoadStreamInfo(fileUpLoadStreamInfo.fileId);
           } else {
+            // todo resolve after _setFileUpLoadStreamInfo 
             this._setFileUpLoadStreamInfo(fileUpLoadStreamInfo.fileId, value);
           }
           resolve(value);
@@ -110,7 +114,8 @@ export default class AnySizeFileLoader {
       throw new Error(error.message);
     });
     if (chunkSize > this.maxChunkSize) throw new Error('Chunk exited maxChunkSize restriction');
-    if (chunkNumber < 0 || chunkNumber >= fileUpLoadStreamInfo.chunkTotal)
+    // todo: rework ignoreChunkTotal rule/option
+    if (chunkNumber < 0 || chunkNumber >= (this.ignoreChunkTotal ? 1 :fileUpLoadStreamInfo.chunkTotal))
       throw new Error('chunkNumber out of chunckTotal range');
     if (chunkFileId !== fileUpLoadStreamInfo.fileId)
       throw new Error(`Chunk doesn't belong to this temp file: ${fileUpLoadStreamInfo.fileId}`);
@@ -126,6 +131,8 @@ export default class AnySizeFileLoader {
   }
 
   async assembleChunks(fileId: string, fileName: string): Promise<any> {
+    // todo: rework ignoreChunkTotal rule/option
+    if (this.ignoreChunkTotal) this._deleteFileUpLoadStreamInfo(fileId);
     const assembledFilePath = path.join(this.endDirPath, fileId, fileName);
     await this._checkDir(path.join(this.endDirPath, fileId)).catch((error) => {
       throw new Error(error.message);
@@ -134,7 +141,7 @@ export default class AnySizeFileLoader {
     const addChunk = (chunkFile: fs.PathLike) =>
       new Promise((resolve, reject) => {
         fs.createReadStream(chunkFile)
-          .on('data', (chunk: Buffer) => {
+          .on('data', (chunk: Blob | Buffer) => {
             writeStream.write(chunk);
           })
           .on('end', resolve)
@@ -150,7 +157,7 @@ export default class AnySizeFileLoader {
 
   prepareFileUpLoad(params: IFileConfig): IFileUpLoadStreamInfo {
     const value = {
-      chunkTotal: Math.ceil(params.fileSizeInBytes / this.maxChunkSize),
+      chunkTotal: this.ignoreChunkTotal ? 0 : Math.ceil(params.fileSizeInBytes / this.maxChunkSize), // todo: rework ignoreChunkTotal rule/option
       lastSavedChunk: 0,
       fileId: String(Math.floor(Math.random() * 100000) + params.fileSizeInBytes + Date.now()), // rework or gave options to end user
       fileSizeInBytes: params.fileSizeInBytes,
@@ -170,7 +177,8 @@ export default class AnySizeFileLoader {
     chunkFileId: string,
   ): Promise<IFileUpLoadStreamInfo> {
     const FileUpLoadStreamInfo = await this.getFileUpLoadStreamInfo(chunkFileId);
-    await this._validateChunk(chunkSize, chunkNumber, chunkFileId, FileUpLoadStreamInfo);
+    // todo: rework ignoreChunkTotal rule/option
+    await this._validateChunk(chunkSize, this.ignoreChunkTotal ? 0 : chunkNumber, chunkFileId, FileUpLoadStreamInfo);
     return await this._saveChunk(chunk, chunkNumber, FileUpLoadStreamInfo);
   }
 }
