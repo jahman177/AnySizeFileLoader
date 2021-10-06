@@ -151,6 +151,9 @@ export default class AnySizeFileLoader {
           .on('error', reject);
       });
     const files = await fsPromises.readdir(path.join(this.tempDirPath, fileId));
+    files.sort((a,b) => {
+      return Number(a.substring(a.lastIndexOf('_')+1)) - Number(b.substring(b.lastIndexOf('_')+1));
+      });
     for (const file of files) {
       await addChunk(path.join(this.tempDirPath, fileId, file));
       if (this.deleteChunksAfterAssemble) await fsPromises.unlink(path.join(this.tempDirPath, fileId, file));
