@@ -1,6 +1,6 @@
 {
   "name": "any-size-file-loader",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Manage huge files upload by spliting in to chunks",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
